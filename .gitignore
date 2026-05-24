@@ -1,0 +1,81 @@
+# CryptoFlow-Sym: keep private/local material out of Git
+
+# Secrets / local configs
+.env
+.env.*
+*.env
+*.secret
+*.secrets
+*secret*
+*secrets*
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+*.lic
+config.json
+config.local.json
+configs/config.sym.json
+configs/*.local.json
+configs/*secret*.json
+configs/*secrets*.json
+
+# Runtime outputs and temporary work
+logs/*
+!logs/.gitkeep
+tmp/*
+!tmp/.gitkeep
+outputs/*
+!outputs/.gitkeep
+experiments/*
+!experiments/.gitkeep
+iterations/*
+!iterations/.gitkeep
+deliverables/*
+!deliverables/.gitkeep
+pipeline/*.runtime.json
+pipeline/*.state.json
+pipeline/*.lock
+pipeline/*.tmp
+
+# Paper/source corpora that may be copyrighted or private
+papers/*
+!papers/.gitkeep
+knowledge/*
+!knowledge/.gitkeep
+project/*
+!project/.gitkeep
+
+# Python / tooling caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / package caches
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archives / local backups
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.bak
+*.backup

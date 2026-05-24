@@ -1,0 +1,511 @@
+schema_version: '0.1'
+project_name: CryptoFlow-Sym
+workflow_name: symmetric_crypto_research_pipeline
+description: Machine-readable pipeline for ARIS-like symmetric cryptography research
+  automation.
+config_file: configs/config.sym.json
+config_file_fallbacks:
+- configs/config.sym.example.json
+skill_file: skills/cryptoflow-sym-pipeline/SKILL.md
+status_file: pipeline/status.json
+startup_behavior:
+  start_stage: stage_0_initialize_project
+  treat_example_config_as_template: true
+  preserve_example_config_by_default: true
+  create_real_config_when_missing: true
+  real_config_creation_rule: If configs/config.sym.json does not exist, copy configs/config.sym.example.json
+    and then fill project-specific fields from the user request.
+  user_manual_edit_required: false
+  load_workflow_file_when_available: true
+  record_real_or_demo_project_status_in: pipeline/status.json
+  prefer_mode_for_aris_like_full_automation: full_auto_draft
+  draft_output_labeling_rule: Draft, blocked, negative-result, and research-log outputs
+    must be clearly labeled and must not be presented as final-approved claims.
+  source_of_truth_order:
+  - user_current_explicit_instruction
+  - configs/config.sym.json
+  - configs/workflow.sym.yaml
+  - skills/cryptoflow-sym-pipeline/SKILL.md
+  - configs/config.sym.example.json
+  conflict_resolution_rule: Prefer the user explicit instruction unless it violates
+    safety, sandbox, or claim-finalization rules.
+principles:
+- Explore aggressively; claim conservatively.
+- Gates block finalization and strong claims, not exploration or draft generation.
+- Claim status and reproduction status are separate.
+- Lightweight checks do not count against formal review rounds.
+- Full automation may produce drafts, blocked reports, and negative results, but not
+  final-approved serious claims.
+modes:
+  default: human_in_the_loop
+  available:
+  - human_in_the_loop
+  - supervised_auto
+  - overnight_auto
+  - full_auto_draft
+  behavior:
+    human_in_the_loop:
+      auto_proceed: false
+      human_checkpoint: true
+      auto_select_top_candidate: false
+      allow_small_experiments: ask_or_yes_when_trivial
+      allow_expensive_experiments: false
+      allow_paper_draft: ask
+      allow_final_claim: gates_plus_human_approval
+    supervised_auto:
+      auto_proceed: true
+      human_checkpoint: true
+      auto_select_top_candidate: true
+      max_autonomous_stage_depth: 2
+      allow_small_experiments: true
+      allow_expensive_experiments: false
+      allow_paper_draft: draft_only
+      allow_final_claim: gates_plus_human_approval
+    overnight_auto:
+      auto_proceed: true
+      human_checkpoint: false
+      auto_select_top_candidate: true
+      max_autonomous_stage_depth: 4
+      allow_small_experiments: true
+      allow_expensive_experiments: preapproval_required
+      allow_paper_draft: draft_only
+      allow_final_claim: false
+      on_hard_gate_failure: write_blocked_report_and_continue_in_draft_mode
+    full_auto_draft:
+      auto_proceed: true
+      human_checkpoint: false
+      auto_select_top_candidate: true
+      max_autonomous_stage_depth: null
+      allow_small_experiments: true
+      allow_expensive_experiments: preapproval_required
+      allow_paper_draft: unverified_draft
+      allow_final_claim: false
+      on_hard_gate_failure: write_blocked_report_and_continue_in_draft_mode
+      required_output_label: unverified_draft
+final_claim_policy:
+  serious_claim_types:
+  - paper_level_claim
+  - attack_claim
+  - security_claim
+  - complexity_claim
+  - best_known_attack_claim
+  - novelty_claim
+  final_approval_allowed_in_modes:
+    human_in_the_loop: true
+    supervised_auto: true
+    overnight_auto: false
+    full_auto_draft: false
+  final_approval_requires:
+  - required_gates_passed
+  - formal_review_passed_when_required
+  - human_or_final_checker_approval
+  draft_generation_allowed_when_final_blocked: true
+  blocked_or_negative_report_allowed_when_final_blocked: true
+claim_status:
+  allowed:
+  - idea
+  - preliminary
+  - pilot_supported
+  - literature_supported
+  - validated
+  - review_passed
+  - blocked
+  - negative_result
+  - unverified_draft
+  - final_approved
+  upgrade_rule: Only upgrade when new evidence is recorded. Never silently upgrade.
+reproduction_status:
+  allowed:
+  - not_attempted
+  - paper_checked_only
+  - reproduced_as_reported
+  - reproduced_with_discrepancy
+  - not_reproduced
+  - contradicted_by_experiment
+  - superseded_or_corrected
+  rule: Reproduction status is separate from claim status and cannot by itself approve
+    a new claim.
+gates:
+  application_rule: All gates are conditional on claim type, output status, and automation
+    mode. A gate listed under a stage means check whether it applies; it does not
+    mean every run must hard-stop at that stage.
+  failure_rule: Gate failures block finalization and strong claims, but may continue
+    as draft, blocked report, validation gap, research log, or negative-result output.
+  literature_boundary_gate:
+    level: hard_gate
+    applies_to:
+    - novelty_claim
+    - best_known_attack_claim
+    - standardization_claim
+    - survey_conclusion
+    - comparison_claim
+    required_outputs:
+    - outputs/source_registry.md
+    - outputs/literature_search_matrix.md
+    - outputs/candidate_paper_queue.md
+    failure_behavior: block_novelty_and_comparison_claims
+  primitive_or_component_profile_gate:
+    level: hard_gate
+    applies_to:
+    - algorithm_specific_claim
+    - component_specific_claim
+    - implementation_dependent_claim
+    required_outputs:
+    - outputs/primitive_profile.md
+    optional_outputs:
+    - outputs/component_property_profile.md
+    - outputs/validation_gap_report.md
+    failure_behavior: block_algorithm_specific_claims
+  claim_evidence_matrix_gate:
+    level: hard_gate
+    applies_to:
+    - paper_level_claim
+    - attack_claim
+    - security_claim
+    - complexity_claim
+    - survey_conclusion
+    required_outputs:
+    - outputs/claim_evidence_matrix.md
+    failure_behavior: claim_cannot_be_final_approved
+  complexity_audit_gate:
+    level: hard_gate
+    applies_to:
+    - attack_claim
+    - performance_claim
+    - benchmarking_claim
+    - cost_claim
+    required_fields:
+    - data_complexity
+    - time_complexity
+    - memory_complexity
+    - precomputation_cost
+    - filtering_or_false_positive_cost
+    - guessed_key_bits
+    - success_probability
+    - comparison_with_exhaustive_search
+    failure_behavior: downgrade_to_preliminary_blocked_or_unverified_draft
+  validation_gate:
+    level: hard_gate
+    applies_to:
+    - implementation_dependent_claim
+    - algorithm_behavior_claim
+    - reproduction_result
+    preferred_evidence:
+    - official_test_vectors
+    - reference_implementation_comparison
+    - independent_implementation_comparison
+    - inverse_tests
+    - randomized_consistency_tests
+    - intermediate_state_checks
+    - rederived_test_vectors
+    missing_test_vector_behavior: allow_independent_validation_but_record_gap
+    required_gap_output: outputs/validation_gap_report.md
+  modeling_assumptions_gate:
+    level: hard_gate
+    applies_to:
+    - formal_model_claim
+    - modeling_result
+    - source_code_model_result
+    - milp_sat_smt_cp_result
+    - monomial_or_division_property_result
+    required_outputs:
+    - outputs/modeling_assumptions.md
+    failure_behavior: result_may_be_logged_but_dependent_claim_stays_preliminary_pilot_blocked_or_unverified
+  independent_review_gate:
+    level: hard_gate
+    applies_to:
+    - paper_level_claim
+    - attack_claim
+    - security_claim
+    - complexity_claim
+    - final_deliverable
+    output_pattern: iterations/review_round_N.md
+    can_skip_formal_review_when:
+    - only_research_log_update
+    - only_negative_result_without_new_security_claim
+    - only_unverified_draft_with_no_serious_claim
+    - only_literature_notes_or_rough_summary
+    failure_behavior: block_finalization
+review:
+  lightweight_checks:
+    count_against_max_review_rounds: false
+    output_pattern: iterations/lightweight_check_N.md
+    suggested_after_stages:
+    - stage_2_primitive_or_component_profile
+    - stage_3_attack_boundary_and_claim_matrix
+    cannot:
+    - mark_serious_claim_final_approved
+  formal_review:
+    count_against_max_review_rounds: true
+    output_pattern: iterations/review_round_N.md
+    required_for:
+    - paper_level_claim
+    - attack_or_security_claim
+    - complexity_claim
+    - final_deliverable
+    max_rounds_default: 4
+sandbox:
+  default_profile: normal
+  profiles:
+    safe:
+      max_runtime_minutes_per_job: 30
+      max_memory_gb_per_job: 8
+      max_cpu_threads_per_job: 4
+      network_access: literature_search_only
+      dependency_install: project_local_only_after_review
+      external_artifact_execution: false
+    normal:
+      max_runtime_minutes_per_job: 120
+      max_memory_gb_per_job: 16
+      max_cpu_threads_per_job: 8
+      network_access: literature_search_only
+      dependency_install: project_local_only
+      external_artifact_execution: review_required
+    power:
+      max_runtime_minutes_per_job: 720
+      max_memory_gb_per_job: 32
+      max_cpu_threads_per_job: 16
+      network_access: declared_sources_only
+      dependency_install: project_local_only
+      external_artifact_execution: review_required
+      explicit_permission_required: true
+  allowed_write_paths:
+  - configs/
+  - papers/
+  - knowledge/
+  - outputs/
+  - project/
+  - experiments/
+  - iterations/
+  - paper/
+  - deliverables/
+  - pipeline/
+  - logs/
+  - tmp/
+  denied_paths:
+  - ~/.ssh
+  - ~/.aws
+  - ~/.config
+  - ~/.gnupg
+  - ~/.kube
+  - /etc
+  - /var
+  - /root
+  override:
+    allowed: true
+    requires_reason: true
+    log_file: pipeline/sandbox_override_log.md
+experiments:
+  auto_policy:
+    allow_small_experiments_in_overnight_auto: true
+    allow_small_experiments_in_full_auto_draft: true
+    allow_reference_tests_without_confirmation: true
+    allow_randomized_validation_without_confirmation: true
+    allow_small_milp_sat_smt_search_without_confirmation: true
+  small_experiment_limits:
+    max_runtime_minutes: 30
+    max_memory_gb: 8
+    max_cpu_threads: 8
+    max_trials: 1000
+  confirmation_required_for:
+  - expected_runtime_over_limit
+  - memory_over_limit
+  - full_key_space_search
+  - large_scale_exhaustive_search
+  - untrusted_external_code_execution
+  - global_dependency_installation
+  - network_access_beyond_literature_search
+  - api_cost_over_budget
+  - gpu_or_cluster_job_submission
+  allowed_small_experiment_types:
+  - reference_implementation_tests
+  - encrypt_decrypt_inverse_tests
+  - randomized_consistency_tests
+  - sbox_ddt_lat_walsh
+  - boolean_function_property_checks
+  - small_round_distinguisher_validation
+  - small_milp_sat_smt_cp_search
+  - limited_random_key_validation
+  - lightweight_reproduction
+  result_labels:
+  - pilot
+  - small_scale_validation
+  - unverified_until_reviewed
+outputs:
+  note: These are expected or conditional workflow artifacts, not all mandatory for
+    every run.
+  required_or_expected:
+  - pipeline/status.json
+  - pipeline/human_checkpoints.md
+  - pipeline/sandbox_override_log.md
+  - outputs/source_registry.md
+  - outputs/scope_classification_log.md
+  - outputs/literature_search_matrix.md
+  - outputs/candidate_paper_queue.md
+  - outputs/primitive_profile.md
+  - outputs/component_property_profile.md
+  - outputs/attack_boundary_table.md
+  - outputs/claim_evidence_matrix.md
+  - outputs/modeling_assumptions.md
+  - outputs/validation_gap_report.md
+  - outputs/blocked_report.md
+  - outputs/negative_results.md
+  - outputs/risk_register.md
+  - outputs/research_log.md
+  - outputs/idea_candidates.md
+  - iterations/lightweight_check_N.md
+  - iterations/review_round_N.md
+  - paper/unverified_draft.md
+  - paper/manuscript.md
+  - deliverables/final_report.md
+  - experiments/experiment_plan.md
+  - experiments/experiment_log.md
+stages:
+- id: stage_0_initialize_project
+  title: Initialize Project
+  outputs:
+  - pipeline/status.json
+  actions:
+  - identify_project_root
+  - load_or_create_config
+  - validate_config_syntax
+  - create_required_directories
+  - initialize_or_update_status_file
+  - record_automation_mode
+  - record_sandbox_profile
+  decisions:
+    continue: stage_1_scope_and_literature_boundary
+- id: stage_1_scope_and_literature_boundary
+  title: Scope Classification and Literature Boundary
+  outputs:
+  - outputs/source_registry.md
+  - outputs/scope_classification_log.md
+  - outputs/literature_search_matrix.md
+  - outputs/candidate_paper_queue.md
+  - outputs/research_log.md
+  gates:
+  - name: literature_boundary_gate
+    condition: only_for_novelty_comparison_standardization_or_survey_conclusion_claims
+  decisions:
+    continue: stage_2_primitive_or_component_profile
+- id: stage_2_primitive_or_component_profile
+  title: Primitive or Component Profile
+  outputs:
+  - outputs/primitive_profile.md
+  - outputs/component_property_profile.md
+  - outputs/validation_gap_report.md
+  - outputs/research_log.md
+  - iterations/lightweight_check_N.md
+  gates:
+  - name: primitive_or_component_profile_gate
+    condition: only_for_algorithm_or_component_specific_claims
+  - name: validation_gate
+    condition: only_for_implementation_dependent_or_algorithm_behavior_claims
+  decisions:
+    continue: stage_3_attack_boundary_and_claim_matrix
+- id: stage_3_attack_boundary_and_claim_matrix
+  title: Attack Boundary and Claim Matrix
+  outputs:
+  - outputs/attack_boundary_table.md
+  - outputs/claim_evidence_matrix.md
+  - outputs/research_log.md
+  - iterations/lightweight_check_N.md
+  gates:
+  - name: claim_evidence_matrix_gate
+    condition: only_for_paper_level_attack_security_complexity_or_survey_claims
+  - name: complexity_audit_gate
+    condition: only_for_attack_performance_benchmarking_or_cost_claims
+  decisions:
+    continue: stage_4_idea_generation
+- id: stage_4_idea_generation
+  title: Idea Generation
+  outputs:
+  - outputs/idea_candidates.md
+  - outputs/claim_evidence_matrix.md
+  - outputs/research_log.md
+  - pipeline/status.json
+  decisions:
+    continue: stage_5_experiment_planning_and_execution
+- id: stage_5_experiment_planning_and_execution
+  title: Experiment Planning and Execution
+  outputs:
+  - experiments/experiment_plan.md
+  - experiments/experiment_log.md
+  - outputs/modeling_assumptions.md
+  - outputs/negative_results.md
+  - outputs/blocked_report.md
+  - outputs/research_log.md
+  - outputs/validation_gap_report.md
+  gates:
+  - name: modeling_assumptions_gate
+    condition: required_before_formal_model_or_source_code_model_results_support_claims
+  - name: validation_gate
+    condition: only_for_implementation_dependent_or_algorithm_behavior_claims
+  - name: complexity_audit_gate
+    condition: only_for_attack_performance_benchmarking_or_cost_claims
+  decisions:
+    continue: stage_6_independent_review
+- id: stage_6_independent_review
+  title: Independent Review
+  outputs:
+  - iterations/review_round_N.md
+  - outputs/claim_evidence_matrix.md
+  - outputs/risk_register.md
+  - outputs/research_log.md
+  gates:
+  - name: independent_review_gate
+    condition: only_for_serious_claims_or_final_deliverables; may_skip_for_logs_negative_results_or_unverified_notes
+  decisions:
+    continue: stage_7_output_selection_and_delivery
+- id: stage_7_output_selection_and_delivery
+  title: Output Selection and Delivery
+  outputs:
+  - paper/unverified_draft.md
+  - outputs/blocked_report.md
+  - outputs/negative_results.md
+  - outputs/research_log.md
+  - deliverables/final_report.md
+  - paper/manuscript.md
+  - pipeline/status.json
+status_update_rules:
+  update_after:
+  - each_stage
+  - important_gate_change
+  - claim_status_change
+  - sandbox_override
+  - experiment_run
+  - review_round
+  include_fields:
+  - current_stage
+  - automation_mode
+  - sandbox_profile
+  - completed_outputs
+  - open_gates
+  - blocked_claims
+  - claim_status_summary
+  - current_output_mode
+  - next_actions
+failure_classes:
+- config_error
+- scope_error
+- literature_gap
+- spec_ambiguity
+- implementation_error
+- validation_gap
+- complexity_gap
+- modeling_assumption_gap
+- reviewer_disagreement
+- sandbox_violation
+- resource_limit
+- negative_result
+user_reporting:
+  report:
+  - completed_stage
+  - created_or_updated_files
+  - gate_failures_or_downgraded_claims
+  - current_output_status
+  - next_recommended_action
+  avoid:
+  - presenting_unverified_claims_as_final
+  - hiding_failed_gates
+  - spamming_low_level_commands_unless_requested

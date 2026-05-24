@@ -1,0 +1,35 @@
+{
+  "project_name": "CryptoFlow-Sym example",
+  "topic": "example template package",
+  "is_example_or_demo": true,
+  "target_primitives": [],
+  "research_task": "",
+  "primitive_family": "",
+  "automation_mode": "human_in_the_loop",
+  "sandbox_profile": "normal",
+  "current_stage": "stage_0_initialize_project",
+  "current_output_mode": "template",
+  "completed_outputs": [
+    "configs/config.sym.example.json",
+    "configs/workflow.sym.yaml",
+    "skills/cryptoflow-sym-pipeline/SKILL.md",
+    "templates/output_templates.md"
+  ],
+  "open_gates": [],
+  "blocked_claims": [],
+  "claim_status_summary": {
+    "idea": 0,
+    "preliminary": 0,
+    "pilot_supported": 0,
+    "literature_supported": 0,
+    "validated": 0,
+    "review_passed": 0,
+    "blocked": 0,
+    "negative_result": 0,
+    "unverified_draft": 0,
+    "final_approved": 0
+  },
+  "next_actions": [
+    "copy configs/config.sym.example.json to configs/config.sym.json for a real project"
+  ]
+}
