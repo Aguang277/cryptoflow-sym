@@ -23,7 +23,7 @@ It is designed for block ciphers, tweakable block ciphers, stream ciphers, hash 
 Example OpenClaw prompt:
 
 ```text
-Use CryptoFlow-Sym to create a SIT integral-attack project.
+Use CryptoFlow-Sym to create an AES block-cipher security-evaluation project.
 Mode: full_auto_draft.
 Sandbox: normal.
 Create configs/config.sym.json from the example template and start at Stage 0.
